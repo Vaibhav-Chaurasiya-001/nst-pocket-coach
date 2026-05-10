@@ -12,7 +12,15 @@ CREATE TABLE IF NOT EXISTS goals (
   study_hours_per_week INTEGER,
   books_per_month INTEGER,
   other_goal TEXT,
+  subjects TEXT,
   persona TEXT DEFAULT 'supportive',
+  created_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS todos (
+  id INTEGER PRIMARY KEY,
+  task TEXT,
+  is_completed BOOLEAN DEFAULT 0,
   created_at TEXT
 );
 
@@ -48,18 +56,22 @@ def _connect(db_path: str = DEFAULT_DB_PATH) -> sqlite3.Connection:
 def init_db(db_path: str = DEFAULT_DB_PATH) -> None:
     with _connect(db_path) as conn:
         conn.executescript(SCHEMA)
+        try:
+            conn.execute("ALTER TABLE goals ADD COLUMN subjects TEXT")
+        except sqlite3.OperationalError:
+            pass
 
 
 def save_goals(exercise: int, study: int, books: int, persona: str,
-               other: str = "", db_path: str = DEFAULT_DB_PATH) -> None:
+               other: str = "", subjects: str = "", db_path: str = DEFAULT_DB_PATH) -> None:
     """Replace any prior goals row with a new one — only one active goal set at a time."""
     with _connect(db_path) as conn:
         conn.execute("DELETE FROM goals")
         conn.execute(
             "INSERT INTO goals (exercise_hours_per_week, study_hours_per_week, "
-            "books_per_month, other_goal, persona, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (exercise, study, books, other, persona,
+            "books_per_month, other_goal, subjects, persona, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (exercise, study, books, other, subjects, persona,
              datetime.now(timezone.utc).isoformat()),
         )
 
@@ -138,3 +150,27 @@ def streak_count_ending_today(db_path: str = DEFAULT_DB_PATH) -> int:
             streak += 1
             cur -= timedelta(days=1)
     return streak
+
+
+def add_todo(task: str, db_path: str = DEFAULT_DB_PATH) -> None:
+    with _connect(db_path) as conn:
+        conn.execute(
+            "INSERT INTO todos (task, is_completed, created_at) VALUES (?, 0, ?)",
+            (task, datetime.now(timezone.utc).isoformat())
+        )
+
+
+def get_todos(db_path: str = DEFAULT_DB_PATH) -> list[dict]:
+    with _connect(db_path) as conn:
+        rows = conn.execute("SELECT * FROM todos ORDER BY id ASC").fetchall()
+        return [dict(r) for r in rows]
+
+
+def toggle_todo(todo_id: int, is_completed: bool, db_path: str = DEFAULT_DB_PATH) -> None:
+    with _connect(db_path) as conn:
+        conn.execute("UPDATE todos SET is_completed = ? WHERE id = ?", (is_completed, todo_id))
+
+
+def delete_todo(todo_id: int, db_path: str = DEFAULT_DB_PATH) -> None:
+    with _connect(db_path) as conn:
+        conn.execute("DELETE FROM todos WHERE id = ?", (todo_id,))
