@@ -37,7 +37,7 @@ By the end you'll have touched every layer of an AI product: **frontend, backend
 You need **Python 3.10+** and **Git**.
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/nst-pocket-coach.git
+git clone https://github.com/ashwin-tewary/nst-pocket-coach.git
 cd nst-pocket-coach
 
 # Recommended: virtual environment
