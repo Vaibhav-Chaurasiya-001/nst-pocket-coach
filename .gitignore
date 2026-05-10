@@ -1,0 +1,10 @@
+# .gitignore
+__pycache__/
+*.pyc
+.env
+data/*.db
+.venv/
+venv/
+.pytest_cache/
+.DS_Store
+.streamlit/secrets.toml
